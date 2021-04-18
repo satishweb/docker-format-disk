@@ -1,0 +1,23 @@
+# Author: Satish Gaikwad <satish@satishweb.com>
+FROM alpine:latest
+LABEL MAINTAINER satish@satishweb.com
+
+RUN apk add --no-cache \
+    bash \
+    e2fsprogs \
+    btrfs-progs \
+    xfsprogs \
+    ntfs-3g-progs \
+    exfatprogs \
+    zfs \
+    gettext \
+    blkid \
+    sfdisk \
+    busybox
+
+# Add script and make it executable
+ADD formatter /formatter
+RUN chmod u+x /formatter
+
+# Run the command on container startup
+CMD ["/formatter"]

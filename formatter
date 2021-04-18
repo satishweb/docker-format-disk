@@ -1,0 +1,95 @@
+#!/bin/bash
+# Author: Satish Gaikwad <satish@satishweb.com>
+set -e
+
+if [ -f /run/secrets/DEBUG ]; then
+    export DEBUG=$(cat $i)
+fi
+
+if [ "$DEBUG" = "1" ]; then
+    set -x
+    BASH_CMD_FLAGS='-x'
+fi
+
+## Functions
+__usage() {
+  if [[ "$1" != "" ]]; then
+      echo "ERR: $1 "
+  fi
+  echo "Usage: $0
+          -t|--fs-type <$(find "$(which mkfs.ext4|sed 's/\(.*\)\/mkfs.ext4/\1/g')" -name mkfs.\*|awk -F '[.]' '{print $2}'|tr '\n' '|')>
+          -d|--devices </dev/sda1,/dev/sda2>
+          --extra-args <mkfs command arguments>
+          -f|--force
+          -h|--help"
+  echo "Description:"
+  echo "  -t|--fs-type     : File system to use for formatting. Anything that matches command mkfs.*. Defaults to ext4"
+  echo "  -d|--devices     : Comma seperated list of device or partition file paths to format"
+  echo "  --extra-args     : mkfs command arguments/parameters to pass. All arguments must be wrapped in quotes"
+  echo "  -f|--force       : Force formatting of device. DATA LOSS RISK!!! USE THIS OPTION ONLY IF YOU REALLY WANT TO WIPE THE DISK"
+  echo "  -h|--help        : Prints this help menu"
+  exit 1
+}
+
+__processParams() {
+  while [ "$1" != "" ]; do
+    case $1 in
+      -t|--fs-type) shift
+                       [[ ! -f "$(which "mkfs.$1")" ]] && __usage "File system name is missing or incorrect"
+                       fsCmd="$(which "mkfs.${1}")"
+                       ;;
+      -d|--devices)    shift
+                       [[ ! $1 ]] && __usage "Devices list is missing"
+                       devices="$1"
+                       ;;
+      --extra-args)    shift
+                       mkfsArgs="$1"
+                       ;;
+      -f|--force)      force="yes"
+                       ;;
+      -h|--help)       __usage
+                       ;;
+      * )              __usage "Missing or incorrect parameters"
+    esac
+    shift
+  done
+}
+
+
+# Main
+fsCmd="$(which mkfs.ext4)"
+__processParams "$@"
+
+if [[ "$devices" == "" ]]; then
+  echo "ERR: Device path was not specified, nothing to format"
+  exit 1
+fi
+
+mkfsCmd="${fsCmd}"
+
+# Format devices
+for d in $(sed 's/,/ /g' <<< ${devices})
+do
+  # Check if device file exists
+  echo -n "Checking device: $d ..."
+  if [[ ! -b "$d" ]]; then
+    echo "[ FAIL ]"
+    echo "ERR: Device $d does not exists or not a block device"
+    exit 1
+  else
+    echo "[ FOUND ]"
+  fi
+  # Check if block device is already formatted
+  echo -n "Checking device for file system: $d ..."
+  if [[ "$(blkid "$d" |grep -c 'UUID=')" != "0" ]]; then
+    echo "WARN: Device $d is already formatted with a file system"
+    if [[ "$force" == "yes" ]]; then
+      echo "WARN: Force format is enabled, waiting for 10 seconds before formatting"
+      umount -fR "$d"
+      sleep 10
+      exec "${mkfsCmd}" "-F -F ${mkfsArgs}" "$d"
+    fi
+  else
+    exec "${mkfsCmd}" "${mkfsArgs}" "$d"
+  fi
+done
