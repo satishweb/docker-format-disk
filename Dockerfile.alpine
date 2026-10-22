@@ -1,6 +1,6 @@
 # Author: Satish Gaikwad <satish@satishweb.com>
-FROM alpine:latest
-LABEL MAINTAINER satish@satishweb.com
+FROM alpine:3.24
+LABEL maintainer=satish@satishweb.com
 
 RUN apk add --no-cache \
     bash \
