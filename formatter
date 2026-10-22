@@ -3,7 +3,7 @@
 set -e
 
 if [ -f /run/secrets/DEBUG ]; then
-    export DEBUG=$(cat $i)
+    export DEBUG="$(cat /run/secrets/DEBUG)"
 fi
 
 if [ "$DEBUG" = "1" ]; then
