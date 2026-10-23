@@ -136,6 +136,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Debug git environment
+        run: |
+          echo "=== git rev-parse --show-toplevel ==="
+          git rev-parse --show-toplevel || echo "git rev-parse failed"
+          echo "=== pwd ==="
+          pwd
+          echo "=== ls .git ==="
+          ls -la .git 2>&1 || echo "no .git directory"
       - name: Build and publish
         run: |
           set -euo pipefail
