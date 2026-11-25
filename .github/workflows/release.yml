@@ -148,7 +148,7 @@ jobs:
           done
           docker buildx build \
             --platform "${PLATFORMS}" \
-            --file Dockerfile \
+            --file Dockerfile.alpine \
             --provenance=false \
             --push \
             "${tags[@]}" .
